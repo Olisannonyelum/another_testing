@@ -14,8 +14,8 @@ source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
 source.include_exts = py,png,jpg,kv,atxt,txt,data/*,main.py
-£source.include_exts += data/*
-£source.include_exts += main.py
+#source.include_exts += data/*
+#source.include_exts += main.py
 
 # (list) List of inclusions using pattern matching
 source.include_patterns = assets/*,images/*.png
