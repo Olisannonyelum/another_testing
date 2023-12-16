@@ -16,6 +16,8 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
 from kivy.resources import resource_find
 from threading import Thread
+import os
+
 
 #Window.size=(dp(1080),dp(1920))
 
@@ -42,7 +44,9 @@ class Test(MDApp):
     filename=StringProperty("")
     missal=StringProperty("hell")
     def selec_date(self,instance,value,date_range):
-        self.filename=f'data\\{value}.txt'
+        #self.filename=f'data\\{value}.txt'
+        self.filename=os.path.join(os.path.dirname(__file__),'data',f'{value}.txt')
+        print(self.filename)
         #print("---->",str(value))
         Thread(target=self.load_content).start()
 
@@ -56,13 +60,13 @@ class Test(MDApp):
             #self.filename=f'app_image\\missal\\{value}.txt'
             #self.file=open("C:\\Users\\Nnonyelume\\Desktop\\clone\\R@1n.txt")
             #print(self.path)
-            self.path= resource_find(self.filename)
-            if self.path:
-                with open(self.path,"r",encoding="ISO-8859-1") as file:
-                    missal = file.read()
-                    self.root.ids.Missal.text=missal
-            else:
-                self.dialog_open()
+            #self.path= resource_find(self.filename)
+            #if self.path:
+            with open(self.filename,"r",encoding="ISO-8859-1") as file:
+                self.missal = file.read()
+                self.root.ids.Missal.text=self.missal
+            #else:
+             #   self.dialog_open()
                 
 
             
