@@ -34,7 +34,7 @@ class DIALOG_BOX(MDDialog):
     #    self.ids.calendar.height=dp(200)
 
 
-#app_image\missal\2023-12-01.txt #
+#app_image\missal\2023-12-01.txt 
 
 
 class Test(MDApp):
