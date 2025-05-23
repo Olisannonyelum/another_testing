@@ -15,43 +15,36 @@ jobs:
 
       - name: Clean Buildozer cache
         run: rm -rf .buildozer
-          
-     # - name: Set up Java (OpenJDK 17 for Android build)
-     #   uses: actions/setup-java@v4
-     #   with:
-     #     distribution: 'temurin'
-     #     java-version: '17'
 
-      - name: Install Buildozer dependencies
+      - name: Install essential dependencies
         run: |
           sudo apt update
           sudo apt install -y git zip unzip openjdk-17-jdk python3-pip \
           autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
-          libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
+          libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
+          android-sdk android-sdk-platform-34  # Added Android SDK
 
+      - name: Accept Android licenses
+        run: |
+          yes | sudo sdkmanager --licenses
 
-      - name: Install Buildozer in a virtual environment and cython
+      - name: Install Buildozer in virtual environment
         run: |
           python3 -m venv ~/buildozer_venv
           source ~/buildozer_venv/bin/activate
           pip install --upgrade pip
-          pip install setuptools
-          pip install buildozer
-          pip3 install --upgrade Cython==0.29.33 virtualenv
+          pip install buildozer cython==0.29.33
 
       - name: Configure and Build with Buildozer
-        working-directory: ./
         run: |
           source ~/buildozer_venv/bin/activate
-
-          echo "Starting Buildozer build in VERBOSE mode..."
-          buildozer -v android debug # <--- Added -v here!
+          echo "Starting Buildozer build..."
+          buildozer -v android debug
 
       - name: Find output APK
         id: find_apk
         run: |
           APK_FILE=$(find bin -name "*.apk" -print0 | xargs -0 ls -t | head -n 1)
-          echo "Found APK: $APK_FILE"
           echo "filename=$APK_FILE" >> $GITHUB_OUTPUT
 
       - name: Upload artifacts
