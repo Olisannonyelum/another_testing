@@ -13,132 +13,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java (OpenJDK 17 for Android build)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+      - name: Clean Buildozer cache
+        run: rm -rf .buildozer
+          
+     # - name: Set up Java (OpenJDK 17 for Android build)
+     #   uses: actions/setup-java@v4
+     #   with:
+     #     distribution: 'temurin'
+     #     java-version: '17'
 
       - name: Install Buildozer dependencies
         run: |
           sudo apt update
-          sudo apt install -y git zip unzip autoconf libtool pkg-config build-essential \
-            python3 python3-dev python3-pip python3-setuptools python3-venv \
-            cython3 openjdk-17-jdk
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip \
+          autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
+          libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
 
-      - name: Install Buildozer in a virtual environment
+
+      - name: Install Buildozer in a virtual environment and cython
         run: |
           python3 -m venv ~/buildozer_venv
           source ~/buildozer_venv/bin/activate
           pip install --upgrade pip
-          pip install setuptools # Ensure distutils is available
+          pip install setuptools
           pip install buildozer
+          pip3 install --upgrade Cython==0.29.33 virtualenv
 
       - name: Configure and Build with Buildozer
         working-directory: ./
         run: |
           source ~/buildozer_venv/bin/activate
 
-          # --- IMPORTANT: Configure your buildozer.spec here ---
-          # ... (keep your sed commands here as before) ...
-          sed -i "s/^title = .*/title = My KivyMD App/" buildozer.spec
-          sed -i "s/^package\.name = .*/package.name = myapp/" buildozer.spec
-          sed -i "s/^package\.domain = .*/package.domain = com.example/" buildozer.spec
-          sed -i "s/^requirements = .*/requirements = python3,kivy,kivymd,pillow/" buildozer.spec
-          sed -i "s/^#android\.api = .*/android.api = 33/" buildozer.spec
-          sed -i "s/^#android\.minapi = .*/android.minapi = 21/" buildozer.spec
-          sed -i "s/^#android\.archs = .*/android.archs = arm64-v8a,armeabi-v7a/" buildozer.spec
-
-          # Ensure icon and presplash paths are correct if you use them
-          # sed -i "s|^#icon\.filename = .*|icon.filename = data/icon.png|" buildozer.spec
-          # sed -i "s|^#presplash\.filename = .*|presplash.filename = presplash/presplash.png|" buildozer.spec
-
-
-          # --- Crucial for AIDL: Ensure Android SDK paths are correctly set ---
-          # Buildozer typically handles this, but explicitly setting ANDROID_HOME and PATH
-          # can help if the default discovery fails.
-          # Buildozer downloads SDK/NDK to .buildozer/android/platform/ or similar
-          # The exact path might vary slightly based on buildozer version or runner.
-
-          # First, let Buildozer download what it needs on its first run
-          # This might also implicitly set up some environment variables for subsequent steps
-          # This is the command that will download SDK/NDK if not present
-          echo "Starting Buildozer build..."
-          buildozer android debug
-          echo "Buildozer command finished."
-
-          # After the first buildozer run, the SDK tools should be present.
-          # Buildozer's own scripts usually set up the environment,
-          # but if you need to run other Android SDK tools directly,
-          # you'd typically set ANDROID_HOME.
-          # For AIDL specifically, buildozer often tries to find it.
-
-          # If the AIDL error persists even after the above 'buildozer android debug',
-          # it implies buildozer itself failed to find or install it correctly.
-          # One common cause is an outdated Buildozer version or an issue with the specific SDK version it tries to download.
-          # Let's try explicitly updating the tools before running the main build command.
-          # Add this after the initial buildozer command to ensure SDK is there:
-          # This assumes Buildozer has already downloaded the SDK to ~/.buildozer/android/platform/android-sdk
-          # This path might need adjustment based on your Buildozer's actual SDK download location.
-
-          # No, the previous `buildozer android debug` should handle the full setup.
-          # The "Aidl not found" error means that even *after* it tried to set up, it still couldn't find AIDL.
-          # This suggests a deeper issue with the downloaded SDK tools, or the specific SDK version Buildozer is attempting to use.
-
-          # Let's try a different approach to ensure SDK components are properly obtained.
-          # Buildozer typically relies on components in ~/.buildozer/android/platform/android-sdk/build-tools/
-          # The error often means the build-tools for the targetSdkVersion are not correctly installed or linked.
-
-          # Instead of running buildozer android debug and hoping it finds it,
-          # let's try ensuring a specific build-tools version is available
-          # This might require manual intervention via sdkmanager, but Buildozer is *supposed* to do this.
-
-          # Let's remove the previous buildozer android debug and break it down.
-          # The error is happening *during* the buildozer android debug command.
-          # It means it downloaded *some* SDK, but the AIDL tool within it isn't found/working.
-
-          # Revert to a single buildozer command and focus on buildozer.spec configuration.
-          # The AIDL error is specific to the Android SDK setup.
-          # Buildozer 1.5.0 and newer should handle SDK 33+.
-
-          # Ensure your buildozer.spec's android.api is set to something common and supported, like 33.
-          # The template already suggests this, so it should be fine.
-
-          # Given this recurring AIDL error, let's explicitly try to *force* Buildozer
-          # to update its SDK components, or ensure it's not hitting a cached, broken SDK.
-          # This is similar to clearing Docker cache, but for Buildozer's SDK cache.
-
-          # Add this line before `buildozer android debug` if you suspect a corrupt cache
-          # buildozer clean # This might remove SDKs, forcing a re-download on next build
-
-          # The error means `buildozer android debug` is failing to find AIDL *within* the SDK it set up.
-          # This sometimes happens if the 'build-tools' component of the SDK is corrupted or not properly downloaded/linked.
-          # Buildozer should automatically download the necessary build-tools for the 'android.api' you specify.
-
-          # Let's try specifying a slightly older, but very stable, android.api in buildozer.spec,
-          # if 33 is causing issues with AIDL.
-          # Some users have reported issues with 34/33 and AIDL with older Buildozer versions.
-          # Try changing 'android.api = 33' to 'android.api = 30' or 'android.api = 31' in buildozer.spec first,
-          # just to see if it's a version specific issue with the build-tools.
-
-          # But if you need to target SDK 33+, that's not a long-term solution.
-
-          # Let's assume buildozer.spec's `android.api` is correct (e.g., 33).
-          # The problem is that Buildozer installs its SDK parts in ~/.buildozer/android/platform/android-sdk
-          # The AIDL tool is located within ~/.buildozer/android/platform/android-sdk/build-tools/<version>/aidl
-
-          # The error "Aidl not found, please install it." is usually printed by Buildozer itself when it can't locate aidl.
-          # This could be because the build-tools are not correctly installed for the target API level.
-
-          # Let's add a step to clear Buildozer's cache and force a fresh download, which often resolves such issues.
-          # This goes BEFORE the buildozer android debug command.
-          # This is the most likely solution if the buildozer.spec is correct.
-          echo "Cleaning Buildozer cache to force fresh SDK download..."
-          buildozer clean
-
-          # Now run the build command
-          echo "Starting Buildozer build (after clean)..."
-          buildozer android debug
+          echo "Starting Buildozer build in VERBOSE mode..."
+          buildozer -v android debug # <--- Added -v here!
 
       - name: Find output APK
         id: find_apk
