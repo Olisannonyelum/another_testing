@@ -1,42 +1,88 @@
-name: CI
+name: Build KivyMD App (No Docker Image)
+
 on:
   push:
-    branches: [ main ]
+  pull_request:
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
+  build-android:
+    name: Build for Android
+    runs-on: ubuntu-latest # Use a standard Ubuntu runner
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4 # Use the latest checkout action
 
-      # used to cache dependencies with a timeout
-      - name: Get Date
-        id: get-date
+      - name: Set up Java (OpenJDK 17 for Android build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin' # Or 'zulu', 'adopt' etc.
+          java-version: '17' # Android build tools typically require Java 17
+
+      - name: Install Buildozer dependencies
         run: |
-          echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
-        shell: bash
+          sudo apt update
+          sudo apt install -y git zip unzip autoconf libtool pkg-config build-essential \
+            python3 python3-dev python3-pip python3-setuptools python3-venv \
+            cython3 openjdk-17-jdk # openjdk-17-jdk is also needed for buildozer
 
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v2
-        with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }} # Replace with your path
+      - name: Install Buildozer in a virtual environment
+        run: |
+          python3 -m venv ~/buildozer_venv
+          source ~/buildozer_venv/bin/activate
+          pip install --upgrade pip
+          pip install buildozer
 
-      - uses: actions/cache@v2
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
+      - name: Copy project to workdir for Buildozer (if test_app is not root)
+        # Assuming your KivyMD app code is in a subdirectory called 'test_app'
+        # If your app code is at the root of the repo, you can skip this step
+        # and adjust the 'working-directory' in the next step.
+        run: |
+          cp -r test_app buildozer_workdir
+        # If your main.py and buildozer.spec are directly in the repo root, remove this step.
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: stable
+      - name: Configure and Build with Buildozer
+        # This step performs the 'buildozer init' and 'buildozer android debug'
+        # 'working-directory' should point to where your buildozer.spec is or will be
+        working-directory: buildozer_workdir # Or just './' if your app is at repo root
+        run: |
+          source ~/buildozer_venv/bin/activate
+          
+          # Initialize buildozer.spec if it doesn't exist
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
+          
+          # --- IMPORTANT: Configure your buildozer.spec here ---
+          # These sed commands modify buildozer.spec.
+          # Replace 'YOUR_APP_TITLE', 'your.domain', 'your_package_name',
+          # and ensure 'requirements' matches your actual dependencies.
+          sed -i "s/^title = .*/title = My KivyMD App/" buildozer.spec
+          sed -i "s/^package\.name = .*/package.name = myapp/" buildozer.spec
+          sed -i "s/^package\.domain = .*/package.domain = com.example/" buildozer.spec
+          sed -i "s/^requirements = .*/requirements = python3,kivy,kivymd,pillow,requests/" buildozer.spec
+          sed -i "s/^#android\.api = .*/android.api = 33/" buildozer.spec # Target SDK for Play Store
+          sed -i "s/^#android\.minapi = .*/android.minapi = 21/" buildozer.spec
+          sed -i "s/^#android\.archs = .*/android.archs = arm64-v8a,armeabi-v7a/" buildozer.spec
+          
+          # You might need to add/uncomment other settings based on your needs, e.g., icon, fullscreen
+          # sed -i "s/^#fullscreen = .*/fullscreen = 0/" buildozer.spec
+          # sed -i "s/^#orientation = .*/orientation = portrait/" buildozer.spec
+          
+          # Run the build
+          buildozer android debug
+
+      - name: Find output APK
+        id: find_apk
+        # Adjust path if 'test_app' is not directly under the root or if 'buildozer_workdir' was used.
+        # The APK will be in buildozer_workdir/bin if that was your working directory.
+        run: |
+          APK_FILE=$(find buildozer_workdir/bin -name "*.apk" -print0 | xargs -0 ls -t | head -n 1)
+          echo "Found APK: $APK_FILE"
+          echo "filename=$APK_FILE" >> $GITHUB_OUTPUT
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: package
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: ${{ steps.find_apk.outputs.filename }}
