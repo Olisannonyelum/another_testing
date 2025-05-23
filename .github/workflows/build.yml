@@ -7,72 +7,56 @@ on:
 jobs:
   build-android:
     name: Build for Android
-    runs-on: ubuntu-latest # Use a standard Ubuntu runner
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # Use the latest checkout action
+        uses: actions/checkout@v4
 
       - name: Set up Java (OpenJDK 17 for Android build)
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin' # Or 'zulu', 'adopt' etc.
-          java-version: '17' # Android build tools typically require Java 17
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Install Buildozer dependencies
         run: |
+          pwd
           sudo apt update
-          sudo apt install -y git zip unzip autoconf libtool pkg-config build-essential \
-            python3 python3-dev python3-pip python3-setuptools python3-venv \
-            cython3 openjdk-17-jdk # openjdk-17-jdk is also needed for buildozer
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          #sudo apt install -y git zip unzip autoconf libtool pkg-config build-essential \
+           # python3 python3-dev python3-pip python3-setuptools python3-venv \
+            #cython3 openjdk-17-jdk
 
       - name: Install Buildozer in a virtual environment
         run: |
           python3 -m venv ~/buildozer_venv
           source ~/buildozer_venv/bin/activate
           pip install --upgrade pip
+          # Explicitly install setuptools first to provide distutils
+          pip install setuptools
           pip install buildozer
-          pwd ####i added this line of code 
-
-      # - name: Copy project to workdir for Buildozer (Not needed - app is at root)
-      # This step is removed because your main.py and buildozer.spec are already at the repo root.
 
       - name: Configure and Build with Buildozer
-        # 'working-directory' is '.' because your buildozer.spec and app files are at the repo root
         working-directory: ./
         run: |
           source ~/buildozer_venv/bin/activate
 
           # --- IMPORTANT: Configure your buildozer.spec here ---
-          # These sed commands modify buildozer.spec.
-          # Replace 'YOUR_APP_TITLE', 'your.domain', 'your_package_name',
-          # and ensure 'requirements' matches your actual dependencies.
-          # If your buildozer.spec is already perfectly configured, you can remove these sed lines.
+          # ... (keep your sed commands here as before) ...
           sed -i "s/^title = .*/title = My KivyMD App/" buildozer.spec
           sed -i "s/^package\.name = .*/package.name = myapp/" buildozer.spec
           sed -i "s/^package\.domain = .*/package.domain = com.example/" buildozer.spec
-          # Adjust requirements carefully based on your KivyMD app's actual needs!
-          # Example: python3,kivy,kivymd,pillow,requests
           sed -i "s/^requirements = .*/requirements = python3,kivy,kivymd,pillow/" buildozer.spec
-          sed -i "s/^#android\.api = .*/android.api = 33/" buildozer.spec # Target SDK for Play Store
+          sed -i "s/^#android\.api = .*/android.api = 33/" buildozer.spec
           sed -i "s/^#android\.minapi = .*/android.minapi = 21/" buildozer.spec
           sed -i "s/^#android\.archs = .*/android.archs = arm64-v8a,armeabi-v7a/" buildozer.spec
-
-          # Also adjust icon and other paths if needed.
-          # Given your 'data', 'images', 'presplash' folders,
-          # you might have custom icon/presplash paths in buildozer.spec.
-          # Ensure they are relative to the root directory (where buildozer.spec is).
-          # Example:
-          # sed -i "s|^#icon\.filename = .*|icon.filename = data/icon.png|" buildozer.spec
-          # sed -i "s|^#presplash\.filename = .*|presplash.filename = presplash/presplash.png|" buildozer.spec
 
           # Run the build
           buildozer android debug
 
       - name: Find output APK
         id: find_apk
-        # The APK will be in the 'bin' directory, which is at the repo root since
-        # the working directory for buildozer was the repo root.
         run: |
           APK_FILE=$(find bin -name "*.apk" -print0 | xargs -0 ls -t | head -n 1)
           echo "Found APK: $APK_FILE"
