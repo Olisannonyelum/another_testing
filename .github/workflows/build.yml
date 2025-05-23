@@ -32,52 +32,49 @@ jobs:
           source ~/buildozer_venv/bin/activate
           pip install --upgrade pip
           pip install buildozer
+          pwd ####i added this line of code 
 
-      - name: Copy project to workdir for Buildozer (if test_app is not root)
-        # Assuming your KivyMD app code is in a subdirectory called 'test_app'
-        # If your app code is at the root of the repo, you can skip this step
-        # and adjust the 'working-directory' in the next step.
-        run: |
-          cp -r test_app buildozer_workdir
-        # If your main.py and buildozer.spec are directly in the repo root, remove this step.
+      # - name: Copy project to workdir for Buildozer (Not needed - app is at root)
+      # This step is removed because your main.py and buildozer.spec are already at the repo root.
 
       - name: Configure and Build with Buildozer
-        # This step performs the 'buildozer init' and 'buildozer android debug'
-        # 'working-directory' should point to where your buildozer.spec is or will be
-        working-directory: buildozer_workdir # Or just './' if your app is at repo root
+        # 'working-directory' is '.' because your buildozer.spec and app files are at the repo root
+        working-directory: ./
         run: |
           source ~/buildozer_venv/bin/activate
-          
-          # Initialize buildozer.spec if it doesn't exist
-          if [ ! -f buildozer.spec ]; then
-            buildozer init
-          fi
-          
+
           # --- IMPORTANT: Configure your buildozer.spec here ---
           # These sed commands modify buildozer.spec.
           # Replace 'YOUR_APP_TITLE', 'your.domain', 'your_package_name',
           # and ensure 'requirements' matches your actual dependencies.
+          # If your buildozer.spec is already perfectly configured, you can remove these sed lines.
           sed -i "s/^title = .*/title = My KivyMD App/" buildozer.spec
           sed -i "s/^package\.name = .*/package.name = myapp/" buildozer.spec
           sed -i "s/^package\.domain = .*/package.domain = com.example/" buildozer.spec
-          sed -i "s/^requirements = .*/requirements = python3,kivy,kivymd,pillow,requests/" buildozer.spec
+          # Adjust requirements carefully based on your KivyMD app's actual needs!
+          # Example: python3,kivy,kivymd,pillow,requests
+          sed -i "s/^requirements = .*/requirements = python3,kivy,kivymd,pillow/" buildozer.spec
           sed -i "s/^#android\.api = .*/android.api = 33/" buildozer.spec # Target SDK for Play Store
           sed -i "s/^#android\.minapi = .*/android.minapi = 21/" buildozer.spec
           sed -i "s/^#android\.archs = .*/android.archs = arm64-v8a,armeabi-v7a/" buildozer.spec
-          
-          # You might need to add/uncomment other settings based on your needs, e.g., icon, fullscreen
-          # sed -i "s/^#fullscreen = .*/fullscreen = 0/" buildozer.spec
-          # sed -i "s/^#orientation = .*/orientation = portrait/" buildozer.spec
-          
+
+          # Also adjust icon and other paths if needed.
+          # Given your 'data', 'images', 'presplash' folders,
+          # you might have custom icon/presplash paths in buildozer.spec.
+          # Ensure they are relative to the root directory (where buildozer.spec is).
+          # Example:
+          # sed -i "s|^#icon\.filename = .*|icon.filename = data/icon.png|" buildozer.spec
+          # sed -i "s|^#presplash\.filename = .*|presplash.filename = presplash/presplash.png|" buildozer.spec
+
           # Run the build
           buildozer android debug
 
       - name: Find output APK
         id: find_apk
-        # Adjust path if 'test_app' is not directly under the root or if 'buildozer_workdir' was used.
-        # The APK will be in buildozer_workdir/bin if that was your working directory.
+        # The APK will be in the 'bin' directory, which is at the repo root since
+        # the working directory for buildozer was the repo root.
         run: |
-          APK_FILE=$(find buildozer_workdir/bin -name "*.apk" -print0 | xargs -0 ls -t | head -n 1)
+          APK_FILE=$(find bin -name "*.apk" -print0 | xargs -0 ls -t | head -n 1)
           echo "Found APK: $APK_FILE"
           echo "filename=$APK_FILE" >> $GITHUB_OUTPUT
 
