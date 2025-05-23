@@ -1,5 +1,10 @@
 [app]
 
+
+android.ndk_version = 25b
+android.sdk_version = 34
+android.minapi = 21
+android.api = 34
 # (str) Title of your application
 title = missal
 
