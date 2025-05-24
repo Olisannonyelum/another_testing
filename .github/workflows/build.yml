@@ -16,6 +16,18 @@ jobs:
       - name: Clean Buildozer cache
         run: rm -rf .buildozer
 
+      - name: Install Buildozer in virtual environment
+        run: |
+          python3.12  -m venv ~/buildozer_venv
+          source ~/buildozer_venv/bin/activate
+          pip install --upgrade buildozer
+          
+      #    pip install --upgrade pip
+
+      - name: updating packege
+        run: |
+          sudo apt update
+      
       - name: Install essential dependencies
         run: |
           python3 --version
@@ -24,18 +36,20 @@ jobs:
           autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
           libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
           android-sdk google-android-platform-34-installer
-
-      #- name: Accept Android licenses
-      #  run: |
-      #    yes | sudo sdkmanager --licenses
-
-      - name: Install Buildozer in virtual environment
+          
+      - name: installing cython 0.29.3
         run: |
-          python3 -m venv ~/buildozer_venv
-          source ~/buildozer_venv/bin/activate
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.33
+            pip3 install  --upgrade Cython==0.29.33 virtualenv 
 
+      - name: Installing automake
+        run: |
+          sudo apt install -y automake
+      
+      - name: Installing setuptools
+        run: |
+          pip3 install setuptools
+
+        
       - name: Configure and Build with Buildozer
         run: |
           source ~/buildozer_venv/bin/activate
