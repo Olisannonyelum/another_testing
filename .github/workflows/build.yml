@@ -30,6 +30,7 @@ jobs:
 
       - name: Install Buildozer in virtual environment
         run: |
+          python3 --version 
           python3 -m venv ~/buildozer_venv
           source ~/buildozer_venv/bin/activate
           pip install --upgrade pip
