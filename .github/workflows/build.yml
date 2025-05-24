@@ -1,4 +1,4 @@
-name: Build KivyMD APK (Native)
+name: Build KivyMD APK
 
 on:
   push:
@@ -12,31 +12,17 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install dependencies
+    - name: Build APK with Buildozer Docker
       run: |
-        sudo apt update
-        sudo apt install -y openjdk-17-jdk python3-pip build-essential git unzip
+        docker run --rm \
+          -v ${{ github.workspace }}:/app \
+          -w /app \
+          ghcr.io/kivy/buildozer \
+          /bin/bash -c "buildozer android debug"
 
-    - name: Install Buildozer and Cython
-      run: |
-        pip install --upgrade pip
-        pip install cython buildozer
-
-    - name: Install Android SDK Command Line Tools
-      run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        cd $HOME/android-sdk/cmdline-tools
-        curl -O https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-9477386_latest.zip
-        mv cmdline-tools latest
-        export ANDROID_SDK_ROOT=$HOME/android-sdk
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
-        yes | sdkmanager --licenses
-        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-
-    - name: Build APK
-      env:
-        ANDROID_SDK_ROOT: ${{ env.HOME }}/android-sdk
-        PATH: ${{ env.PATH }}:${{ env.HOME }}/android-sdk/platform-tools:${{ env.HOME }}/android-sdk/cmdline-tools/latest/bin
-      run: |
-        buildozer android debug
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kivymd-app-apk
+        path: bin/*.apk
+        retention-days: 30
