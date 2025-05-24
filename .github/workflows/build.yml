@@ -18,6 +18,7 @@ jobs:
 
       - name: Install essential dependencies
         run: |
+          python3 --version
           sudo apt update
           sudo apt install -y git zip unzip openjdk-17-jdk python3-pip \
           autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
@@ -30,7 +31,6 @@ jobs:
 
       - name: Install Buildozer in virtual environment
         run: |
-          python3 --version 
           python3 -m venv ~/buildozer_venv
           source ~/buildozer_venv/bin/activate
           pip install --upgrade pip
