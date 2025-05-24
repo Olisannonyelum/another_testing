@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout source
+    - name: Checkout code
       uses: actions/checkout@v3
 
     - name: Set up Python
@@ -23,23 +23,26 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y \
-          git zip unzip openjdk-17-jdk \
+          zip unzip openjdk-17-jdk \
           python3-pip python3-setuptools \
-          python3-wheel libffi-dev \
-          libssl-dev build-essential \
-          libsqlite3-dev libjpeg-dev
+          python3-wheel libffi-dev libssl-dev \
+          build-essential libsqlite3-dev libjpeg-dev \
+          git
 
-    - name: Install Buildozer
+    - name: Install Buildozer and dependencies
       run: |
         pip install --upgrade pip
-        pip install cython
-        pip install buildozer
+        pip install cython buildozer
+
+    - name: Pre-accept Android SDK licenses
+      run: |
+        yes | sdkmanager --licenses || true
 
     - name: Build APK
       run: |
         buildozer android debug
 
-    - name: Upload APK artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: kivymd-app-apk
