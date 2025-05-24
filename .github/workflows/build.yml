@@ -13,16 +13,27 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Restore Build Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          .buildozer
+          ~/.gradle
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('**/*.py', 'buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
     - name: Build APK using Buildozer Docker from GHCR
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/app \
           -w /app \
           ghcr.io/kivy/buildozer \
-          buildozer android debug
+          /bin/bash -c "buildozer android debug"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: kivymd-app-apk
         path: bin/*.apk
+        retention-days: 30
