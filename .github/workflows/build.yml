@@ -20,7 +20,7 @@ jobs:
         run: |
           python3.12  -m venv ~/buildozer_venv
           source ~/buildozer_venv/bin/activate
-          pip install --upgrade buildozer
+          pip install --upgrade buildozer setuptools
           
       #    pip install --upgrade pip
 
@@ -45,9 +45,9 @@ jobs:
         run: |
           sudo apt install -y automake
       
-      - name: Installing setuptools
-        run: |
-          pip3 install setuptools
+     # - name: Installing setuptools
+     #   run: |
+     #     pip3 install setuptools
 
         
       - name: Configure and Build with Buildozer
