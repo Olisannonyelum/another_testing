@@ -1,70 +1,43 @@
-name: Build KivyMD App (No Docker Image)
+name: Build KivyMD APK
 
 on:
   push:
-  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-android:
-    name: Build for Android
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Clean Buildozer cache
-        run: rm -rf .buildozer
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Install Buildozer in virtual environment
-        run: |
-          python3.12  -m venv ~/buildozer_venv
-          source ~/buildozer_venv/bin/activate
-          pip install --upgrade buildozer setuptools
-          
-      #    pip install --upgrade pip
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          build-essential ccache libncurses5:i386 \
+          libstdc++6:i386 zlib1g:i386 libncurses5 \
+          lib32z1 openjdk-17-jdk unzip git python3-pip
 
-      - name: updating packege
-        run: |
-          sudo apt update
-      
-      - name: Install essential dependencies
-        run: |
-          python3 --version
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip \
-          autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
-          libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
-          android-sdk google-android-platform-34-installer
-          sudo apt install aidl
-          
-      - name: installing cython 0.29.3
-        run: |
-            pip3 install  --upgrade Cython==0.29.33 virtualenv 
+    - name: Install buildozer
+      run: |
+        pip install --upgrade pip
+        pip install buildozer cython
 
-      - name: Installing automake
-        run: |
-          sudo apt install -y automake
-      
-     # - name: Installing setuptools
-     #   run: |
-     #     pip3 install setuptools
+    - name: Build APK
+      run: |
+        buildozer android debug
 
-        
-      - name: Configure and Build with Buildozer
-        run: |
-          source ~/buildozer_venv/bin/activate
-          echo "Starting Buildozer build..."
-          buildozer -v android debug
-
-      - name: Find output APK
-        id: find_apk
-        run: |
-          APK_FILE=$(find bin -name "*.apk" -print0 | xargs -0 ls -t | head -n 1)
-          echo "filename=$APK_FILE" >> $GITHUB_OUTPUT
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: ${{ steps.find_apk.outputs.filename }}
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kivymd-app-apk
+        path: bin/*.apk
