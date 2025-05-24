@@ -1,4 +1,4 @@
-name: Build KivyMD APK
+name: Build KivyMD APK (Native)
 
 on:
   push:
@@ -10,30 +10,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-    - name: Restore Build Cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          .buildozer
-          ~/.gradle
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('**/*.py', 'buildozer.spec') }}
-        restore-keys: |
-          ${{ runner.os }}-buildozer-
-
-    - name: Build APK using Buildozer Docker from GHCR
+    - name: Install dependencies
       run: |
-        docker run --rm \
-          -v ${{ github.workspace }}:/app \
-          -w /app \
-          ghcr.io/kivy/buildozer \
-          /bin/bash -c "buildozer android debug"
+        sudo apt update
+        sudo apt install -y openjdk-17-jdk python3-pip build-essential git unzip
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: kivymd-app-apk
-        path: bin/*.apk
-        retention-days: 30
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install cython buildozer
+
+    - name: Install Android SDK Command Line Tools
+      run: |
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        cd $HOME/android-sdk/cmdline-tools
+        curl -O https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip commandlinetools-linux-9477386_latest.zip
+        mv cmdline-tools latest
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+    - name: Build APK
+      env:
+        ANDROID_SDK_ROOT: ${{ env.HOME }}/android-sdk
+        PATH: ${{ env.PATH }}:${{ env.HOME }}/android-sdk/platform-tools:${{ env.HOME }}/android-sdk/cmdline-tools/latest/bin
+      run: |
+        buildozer android debug
