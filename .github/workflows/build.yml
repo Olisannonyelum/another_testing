@@ -1,4 +1,4 @@
-name: Build KivyMD APK with Docker
+name: Build KivyMD APK
 
 on:
   push:
@@ -13,12 +13,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Build APK using Buildozer Docker
+    - name: Build APK using Buildozer Docker from GHCR
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/app \
           -w /app \
-          kivy/buildozer \
+          ghcr.io/kivy/buildozer \
           buildozer android debug
 
     - name: Upload APK
