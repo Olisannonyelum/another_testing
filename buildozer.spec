@@ -12,6 +12,7 @@ package.domain = org.example
 # (str) Source code directory (default is current dir)
 source.dir = .
 
+version = 0.1
 # (list) Application requirements
 # Add kivymd, kivy, python-for-android, and other python libs you use
 requirements = python3,kivy==2.1.0,kivymd
